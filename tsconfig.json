@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "noImplicitThis": true,
+    "target": "es3",
+    "module": "commonjs",
+    "strict": false,
+    "outDir": "dist",
+    "downlevelIteration": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "lib": [
+      // for flatMap
+      "dom"
+      //"esnext.asynciterable" if we need to use graphql-subscription
+    ],
+    "typeRoots": ["node_modules/@types"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "types": ["node", "jest", "reflect-metadata"],
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
