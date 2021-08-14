@@ -1,4 +1,4 @@
-import createStore from "./createStore";
+import createStore from "../src/lib/createStore";
 
 type IState = {
   value?: number;

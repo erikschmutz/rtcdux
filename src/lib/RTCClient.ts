@@ -1,10 +1,8 @@
 import Peer from "peerjs";
 import Message from "./models/Message";
-import Observable from "./models/Observable";
 import { Action } from "./redux/internalEvents";
 import internalReducer from "./redux/internalReducer";
 import InternalState from "./redux/internalState";
-import uniqueList from "./utils/uniqueList";
 import hash from "./utils/hash";
 import {
   HealthCheckScheduledTask,
@@ -12,7 +10,7 @@ import {
 } from "./utils/ScheduledTask";
 import { TypedEmitter } from "tiny-typed-emitter";
 
-const DEFAULT_PING_DELAY = 15 * 1000;
+const DEFAULT_PING_DELAY = 15 * 10000;
 const DEFAULT_UNHEALTHY_THRESHOLD = DEFAULT_PING_DELAY * 3;
 
 interface RTCClientEventEmitter {
@@ -20,31 +18,27 @@ interface RTCClientEventEmitter {
 }
 
 export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
-  private nodes = new Map<string, Peer.DataConnection>();
-  private messages: Message[] = [];
-  private peer: Peer;
+  // will be set on the reset() method
+  private nodes: Map<string, Peer.DataConnection> = new Map();
+  // will be set on the reset() method
+  private messages!: Message[];
+
+  private peer!: Peer;
+  private id: string;
   private internalState: InternalState | undefined;
 
   constructor(id?: string) {
     super();
-
-    this.peer = new Peer(id || this.generateId());
-
+    this.id = id || this.generateId();
+    this.nodes = new Map();
+    this.reset();
     this.peer.on("connection", (conn) => {
       this.listenToConnection(conn);
       this.nodes.set(conn.peer, conn);
     });
-
     this.peer.on("error", (error) => {
       console.log(error);
       throw error;
-    });
-
-    this.publish({
-      type: "ism://init",
-      payload: {
-        peerId: this.getId(),
-      },
     });
 
     this.registerSchedulers();
@@ -62,20 +56,20 @@ export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
     ).schedule(DEFAULT_PING_DELAY);
   }
 
-  private getId() {
-    return this.peer.id;
+  public getId() {
+    return this.id;
   }
 
   private generateId() {
     return "CLIENT" + Math.floor(Math.random() * 100);
   }
 
-  private connect(connectionId: string) {
+  public connect(connectionId: string) {
+    console.log(connectionId, this.nodes);
     if (connectionId in this.nodes.keys()) return;
 
     const connection = this.peer.connect(connectionId);
     this.nodes.set(connectionId, connection);
-    console.log("this.neighbors", this.nodes);
 
     connection.on("error", (error) => {
       alert(error);
@@ -98,12 +92,12 @@ export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
     });
   }
 
-  async join(connectionId: string) {
-    await this.connect(connectionId);
-  }
-
   public getNodes() {
     return this.internalState?.nodes;
+  }
+
+  public getConnections() {
+    return this.nodes;
   }
 
   public getInternalState() {
@@ -116,14 +110,13 @@ export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
   }
 
   private listenToConnection(connection: Peer.DataConnection) {
-    console.log(connection);
     connection.on("data", (data) => {
       this.log(this.peer.id, "recieved", data);
       this.onMessage(data);
     });
 
     connection.on("close", () => {
-      this.log(this.peer.id, "close");
+      this.log(connection.peer, "close");
     });
   }
 
@@ -149,40 +142,74 @@ export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
       type: "ism://disconnect",
       payload: { peerId: this.peer.id },
     });
-    this.peer.disconnect();
   }
 
-  public publish(action: Action): void {
+  public publish(action: Action) {
     this.log(action);
     this.internalState = internalReducer(this.internalState, action, this);
 
     const msg = new Message(action);
-    this.messages.push(msg);
-
     for (const neighborId of this.nodes.keys()) {
-      const neighbor = this.nodes.get(neighborId);
-      neighbor.send(msg);
+      const neighbor = this.nodes.get(neighborId)!;
+      if (neighbor.open) neighbor.send(msg);
     }
+
+    this.onMessage(msg);
   }
 
   private handlePublicEvent(action: Action) {
     if (action.type === "pdm://action") {
-      this.emit("data", action.type);
+      this.emit("data", action.payload);
     }
+  }
+
+  private reset() {
+    if (this.peer) {
+      this.peer.destroy();
+    }
+
+    this.peer = new Peer(this.getId());
+    this.messages = [];
+    this.internalState = undefined;
+    this.publish({
+      type: "ism://init",
+      payload: {
+        peerId: this.getId(),
+      },
+    });
   }
 
   private handleInternalEvent(action: Action) {
     this.internalState = internalReducer(this.internalState, action, this);
 
     if (action.type === "ism://init") {
-      this.publish({
-        type: "ism://discover",
-        payload: {
-          nodesIds: Object.keys(this.internalState.nodes),
-          peerId: this.peer.id,
-        },
-      });
+      if (!this.internalState) {
+        throw new Error("No internal state created before handeling event!");
+      }
+
+      if (action.payload.peerId !== this.getId()) {
+        this.publish({
+          type: "ism://discover",
+          payload: {
+            nodesIds: Object.keys(this.internalState.nodes),
+            peerId: this.peer.id,
+          },
+        });
+      }
     }
+
+    if (action.type === "ism://disconnect") {
+      if (action.payload.peerId === this.getId()) {
+        setTimeout(() => {
+          this.reset();
+          this.disconnectToMissingNeigbors();
+        }, 100);
+      } else {
+        this.disconnectToMissingNeigbors();
+      }
+    }
+
+    console.log("UPDATING NEIGHOBRS");
 
     this.connectToNewNeighbors();
   }
@@ -206,7 +233,6 @@ export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
 
   public async connectToNewNeighbors() {
     if (!this.internalState) return;
-
     for (const neighborId in this.internalState.nodes) {
       // Already has the neighbor
       if (this.nodes.has(neighborId)) continue;
@@ -217,5 +243,31 @@ export class RTCClient extends TypedEmitter<RTCClientEventEmitter> {
         this.connect(neighborId);
       }
     }
+  }
+
+  private cleanUp() {
+    for (const neighborId of this.nodes.keys()) {
+      // We should not close our selves
+      if (!this.nodes.get(neighborId)!.open) this.nodes.delete(neighborId);
+    }
+  }
+
+  public async disconnectToMissingNeigbors() {
+    if (!this.internalState) return;
+
+    // Removes all the connected one which does not still exist in state
+    for (const neighborId of this.nodes.keys()) {
+      // We should not close our selves
+      if (neighborId === this.peer.id) continue;
+
+      // Neighbor still exists
+      if (neighborId in this.internalState.nodes) continue;
+
+      console.log("CLOSING ", neighborId);
+      // Neighbor is removed from the state
+      this.nodes.get(neighborId)!.close();
+    }
+
+    this.cleanUp();
   }
 }

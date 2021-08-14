@@ -1,37 +1,33 @@
 import { RTCClient } from "./RTCClient";
 import { Reducer, Action, Observer } from "redux";
-import Observable from "./models/Observable";
+import Observable from "./utils/Observable";
+import { PDMPayloadAction } from "./redux/internalEvents";
 
 export class RTCDuxStore<S, A extends Action> extends Observable {
   private state: S | undefined;
   private reducer: Reducer<S, A>;
-  private client: RTCClient;
+  public __internalClient__: RTCClient;
 
   constructor(reducer: Reducer<S, A>, id?: string) {
     super();
-    this.client = new RTCClient(id);
     this.reducer = reducer;
-    this.client.on("data", this.onPublicEvent.bind(this));
+    this.__internalClient__ = new RTCClient(id);
+    this.__internalClient__.on("data", this.handlePublicEvent.bind(this));
   }
 
-  public onPublicEvent(payload: any) {
-    this.state = this.reducer(this.state, payload as A);
+  private handlePublicEvent(action: any) {
+    this.state = this.reducer(this.state, action as A);
     this.notifySubscribers();
   }
 
   public dispatch<T extends A>(action: T) {
-    this.onPublicEvent(action);
-    this.client.publish({ type: "pdm://action", payload: action });
+    this.__internalClient__.publish({ type: "pdm://action", payload: action });
     this.notifySubscribers();
     return action;
   }
 
   public getState() {
     return this.state;
-  }
-
-  public subscribe(callback: () => void) {
-    return this.subscribe(callback);
   }
 
   public replaceReducer(reducer: Reducer<S, A>) {
@@ -58,7 +54,7 @@ export class RTCDuxStore<S, A extends Action> extends Observable {
 
       const observeState = () => {
         if (observer.next) {
-          observer.next(this.getState());
+          observer.next(this.getState()!);
         }
       };
 
@@ -73,5 +69,17 @@ export class RTCDuxStore<S, A extends Action> extends Observable {
         return this;
       },
     };
+  }
+
+  public connect(peerId: string) {
+    return this.__internalClient__.connect(peerId);
+  }
+
+  public disconnect() {
+    return this.__internalClient__.disconnect();
+  }
+
+  public getId() {
+    return this.__internalClient__.getId();
   }
 }

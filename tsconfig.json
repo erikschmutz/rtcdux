@@ -3,7 +3,7 @@
     "noImplicitThis": true,
     "target": "es3",
     "module": "commonjs",
-    "strict": false,
+    "strict": true,
     "outDir": "dist",
     "downlevelIteration": true,
     "sourceMap": true,
@@ -18,6 +18,6 @@
     "emitDecoratorMetadata": true
   },
   "types": ["node", "jest", "reflect-metadata"],
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*", "tests/**/*", "examples/ExampleState.ts"],
   "exclude": ["node_modules", "dist"]
 }

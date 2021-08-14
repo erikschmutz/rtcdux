@@ -1,20 +1,22 @@
-import store from "../src/lib/ExampleState";
+import store from "./ExampleState";
 import ReactDOM from "react-dom";
 import React, { useState, useEffect } from "react";
 
 function RTCDux() {
   const [data, setData] = useState();
   const [stateStr, setState] = useState();
-  const [sessionID, setSession] = useState(store._connection.getId());
-  const [members, setMembers] = useState();
+  const [sessionID, setSession] = useState();
   const [messages, setMessages] = useState();
 
   const update = () => {
-    console.log(store.getState());
+    const connected = [];
+    store.__internalClient__.getConnections().forEach((v) => {
+      connected.push(v.peer);
+    });
+
     setState({
-      ...store._connection.getInternalState(),
-      ...store.getState(),
-      messages: store._connection.getInternalMessages(),
+      connections: connected,
+      state: store.getState() || "No state",
     });
   };
 
@@ -22,19 +24,10 @@ function RTCDux() {
     store.subscribe(() => {
       update();
     });
-    store._connection.subscribe(() => {
-      update();
-    });
   }, []);
 
-  const onStartSession = () => {
-    setSession(store._connection.startSession());
-    update();
-  };
-
   const onJoinSession = () => {
-    setSession(store._connection.getId() + "=>" + sessionID);
-    store._connection.join(sessionID);
+    store.connect(sessionID);
   };
 
   const onPublishData = () => {
@@ -46,16 +39,14 @@ function RTCDux() {
 
   return (
     <>
-      <p>Session id: {sessionID}</p>
+      <p>Session id: {store.__internalClient__.getId()}</p>
+      <p>Connected to id: {sessionID}</p>
       <button onClick={() => update()}>Refresh</button>
 
       <p>Connect to id</p>
       <input onChange={(v) => setSession(v.target.value)}></input>
       <button onClick={onJoinSession}>Join session</button>
-      <button onClick={() => store._connection.disconnect()}>
-        Leave session
-      </button>
-
+      <button onClick={() => store.disconnect()}>Leave session</button>
       <p>Send data</p>
       <input onChange={(v) => setData(v.target.value)}></input>
       <button onClick={onPublishData}>Publish data</button>

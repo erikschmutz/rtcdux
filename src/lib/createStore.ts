@@ -4,10 +4,8 @@ import { RTCDuxStore } from "./RTCDux";
 
 function createStore<S, A extends Action>(
   reducer: Reducer<S, A>
-): Store<S, A> & { _connection: RTCClient } {
-  const store = new RTCDuxStore<S, A>(reducer);
-  // assigns the internal _connections
-  return Object.assign(store, { _connection: store as RTCClient });
+): RTCDuxStore<S, A> {
+  return new RTCDuxStore<S, A>(reducer);
 }
 
 export default createStore;

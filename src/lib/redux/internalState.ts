@@ -3,7 +3,7 @@ type NeighborStatus = {
 };
 
 type InternalState = {
-  nodes?: Record<string, NeighborStatus>;
+  nodes: Record<string, NeighborStatus>;
 };
 
 export default InternalState;
