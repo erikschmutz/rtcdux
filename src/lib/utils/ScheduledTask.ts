@@ -5,9 +5,9 @@ interface ScheduledTaskConfig {
 }
 
 abstract class ScheduledTask {
-  private intervalId: NodeJS.Timeout;
+  private intervalId?: NodeJS.Timeout;
   private config: ScheduledTaskConfig;
-  private isActive: boolean;
+  private isActive: boolean = false;
 
   constructor(protected client: RTCClient, config?: ScheduledTaskConfig) {
     this.config = {
@@ -27,7 +27,7 @@ abstract class ScheduledTask {
   }
 
   public remove() {
-    if (this.isActive) {
+    if (this.isActive && this.intervalId) {
       clearInterval(this.intervalId);
       this.isActive = false;
     }
@@ -53,7 +53,7 @@ export class RemoveUnresponsiveScheduledTask extends ScheduledTask {
   }
 
   onEvent() {
-    const nodes = this.client.getInternalState().nodes;
+    const nodes = this.client.getInternalState()?.nodes;
     if (!nodes) return;
 
     for (const node in nodes) {
