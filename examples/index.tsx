@@ -3,56 +3,73 @@ import ReactDOM from "react-dom";
 import React, { useState, useEffect } from "react";
 
 function RTCDux() {
-  const [data, setData] = useState();
-  const [stateStr, setState] = useState();
-  const [sessionID, setSession] = useState();
-  const [messages, setMessages] = useState();
-
-  const update = () => {
-    const connected = [];
-    store.__internalClient__.getConnections().forEach((v) => {
-      connected.push(v.peer);
-    });
-
-    setState({
-      connections: connected,
-      state: store.getState() || "No state",
-    });
-  };
+  const [connected, setConnected] = useState<string[]>(
+    Object.keys(store.__internalClient__.getInternalState()?.nodes!)
+  );
+  const [whole, setWhole] = useState<string>();
+  const [messages, setMessages] = useState<string[]>();
+  const [connectingTo, setConnectingTo] = useState<string>();
+  const [newMessage, setNewMessage] = useState<string>();
 
   useEffect(() => {
-    store.subscribe(() => {
-      update();
+    return store.subscribe(() => {
+      const state = store.getState();
+      if (state) setMessages(state.messages);
     });
   }, []);
 
-  const onJoinSession = () => {
-    store.connect(sessionID);
-  };
-
-  const onPublishData = () => {
-    store.dispatch({
-      value: data,
-      type: "UPDATE",
+  useEffect(() => {
+    return store.__internalClient__.subscribe(() => {
+      const connectedNodes = store.__internalClient__.getInternalState()?.nodes;
+      if (connectedNodes) setConnected(Object.keys(connectedNodes));
     });
-  };
+  }, []);
+
+  console.log(store.__internalClient__.getInternalMessages());
 
   return (
     <>
-      <p>Session id: {store.__internalClient__.getId()}</p>
-      <p>Connected to id: {sessionID}</p>
-      <button onClick={() => update()}>Refresh</button>
-
-      <p>Connect to id</p>
-      <input onChange={(v) => setSession(v.target.value)}></input>
-      <button onClick={onJoinSession}>Join session</button>
+      <p>Current id: {store.getId()}</p>
+      <input onChange={(v) => setConnectingTo(v.target.value)}></input>
+      <button onClick={() => store.connect(connectingTo!)}>Join session</button>
       <button onClick={() => store.disconnect()}>Leave session</button>
-      <p>Send data</p>
-      <input onChange={(v) => setData(v.target.value)}></input>
-      <button onClick={onPublishData}>Publish data</button>
-      <pre>{JSON.stringify(data, null, 4)}</pre>
-      <pre>{JSON.stringify(stateStr, null, 4)}</pre>
-      <pre>{JSON.stringify(messages, null, 4)}</pre>
+
+      <p>Send data({store.__internalClient__.getInternalMessages().length})</p>
+      <input onChange={(v) => setNewMessage(v.target.value)}></input>
+
+      <button
+        onClick={() =>
+          store.dispatch({
+            type: "ADD",
+            message: newMessage!,
+          })
+        }
+      >
+        Add message
+      </button>
+      <button
+        onClick={() =>
+          store.dispatch({
+            type: "REMOVE",
+            message: newMessage!,
+          })
+        }
+      >
+        Remove message
+      </button>
+      <h2>Connected nodes({connected?.length})</h2>
+      <ul>
+        {connected?.map((connected) => {
+          return <li key={connected}>{connected}</li>;
+        })}
+      </ul>
+
+      <h2>Sent data</h2>
+      <ul>
+        {messages?.map((message) => {
+          return <li key={message}>{message}</li>;
+        })}
+      </ul>
     </>
   );
 }

@@ -5,6 +5,7 @@
     "target": "es3",
     "module": "commonjs",
     "strict": true,
+    "jsx": "react",
     "outDir": "dist",
     "downlevelIteration": true,
     "sourceMap": true,
@@ -15,6 +16,11 @@
     "emitDecoratorMetadata": true
   },
   "types": ["node", "jest", "reflect-metadata"],
-  "include": ["src/**/*", "tests/**/*", "examples/ExampleState.ts"],
+  "include": [
+    "src/**/*",
+    "examples/**/*",
+    "tests/**/*",
+    "examples/ExampleState.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

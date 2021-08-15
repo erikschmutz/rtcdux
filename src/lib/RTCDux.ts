@@ -12,6 +12,11 @@ export class RTCDuxStore<S, A extends Action> extends Observable {
     this.reducer = reducer;
     this.__internalClient__ = new RTCClient(id);
     this.__internalClient__.on("data", this.handlePublicEvent.bind(this));
+    this.__internalClient__.on("reset", this.handleReset.bind(this));
+  }
+
+  private handleReset() {
+    this.state = undefined;
   }
 
   private handlePublicEvent(action: any) {

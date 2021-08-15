@@ -1,5 +1,4 @@
 import { RTCClient } from "../RTCClient";
-import uniqueList from "../utils/uniqueList";
 import { Action } from "./internalEvents";
 import InternalState from "./internalState";
 
@@ -10,22 +9,10 @@ const internalReducer = (
   action: Action,
   client: RTCClient
 ): InternalState => {
-  if (action.type === "ism://init") {
-    const id = action.payload.peerId;
-    if (id in state.nodes) return { ...state };
-    else
-      return {
-        ...state,
-        nodes: {
-          ...state.nodes,
-          [action.payload.peerId]: {
-            lastHealthCheck: Date.now(),
-          },
-        },
-      };
-  }
-
-  if (action.type === "ism://discover") {
+  if (
+    action.type === "ism://discover" ||
+    action.type === "ism://discover-response"
+  ) {
     const newNodes = { ...state.nodes };
     for (const neigborId of action.payload.nodesIds) {
       if (neigborId in state.nodes)
@@ -43,6 +30,16 @@ const internalReducer = (
   }
 
   if (action.type === "ism://disconnect") {
+    const newNeighbors = { ...state.nodes };
+    delete newNeighbors[action.payload.peerId];
+
+    return {
+      ...state,
+      nodes: newNeighbors,
+    };
+  }
+
+  if (action.type === "ism://unresponsive") {
     const newNeighbors = { ...state.nodes };
     delete newNeighbors[action.payload.peerId];
 

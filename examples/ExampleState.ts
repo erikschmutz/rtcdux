@@ -1,16 +1,31 @@
 import createStore from "../src/lib/createStore";
 
 type IState = {
-  value?: number;
+  messages: string[];
 };
 
-type UpdateAction = {
-  value: any;
-  type: "UPDATE";
+type AddAction = {
+  message: string;
+  type: "ADD";
 };
 
-const reducer = (state: IState = { value: 0 }, action: UpdateAction) => {
-  if (action.type === "UPDATE") return { ...state, value: action.value };
+type RemoveAction = {
+  message: string;
+  type: "REMOVE";
+};
+
+type Action = AddAction | RemoveAction;
+
+const reducer = (state: IState = { messages: [] }, action: Action) => {
+  if (action.type === "ADD")
+    return { ...state, messages: [...state.messages, action.message] };
+
+  if (action.type === "REMOVE")
+    return {
+      ...state,
+      messages: state.messages.filter((message) => message !== action.message),
+    };
+
   return state;
 };
 
