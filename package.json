@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "start": "parcel examples/index.html",
-    "example": "parcel build examples/index.html",
+    "build-example": "parcel build examples/index.html",
     "test": "jest --detectOpenHandles --forceExit"
   },
   "author": "",
