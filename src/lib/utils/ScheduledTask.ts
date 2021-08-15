@@ -5,7 +5,7 @@ interface ScheduledTaskConfig {
 }
 
 abstract class ScheduledTask {
-  private intervalId?: NodeJS.Timeout;
+  private intervalId?: number;
   private config: ScheduledTaskConfig;
   private isActive: boolean = false;
 
@@ -19,7 +19,7 @@ abstract class ScheduledTask {
 
   public schedule(interval: number) {
     if (this.config.enabled) {
-      this.intervalId = setInterval(() => {
+      this.intervalId = window.setInterval(() => {
         this.onEvent();
       }, interval);
       this.isActive = true;

@@ -1,7 +1,6 @@
 import { RTCClient } from "./RTCClient";
 import { Reducer, Action, Observer } from "redux";
 import Observable from "./utils/Observable";
-import { PDMPayloadAction } from "./redux/internalEvents";
 
 export class RTCDuxStore<S, A extends Action> extends Observable {
   private state: S | undefined;

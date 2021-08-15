@@ -1,5 +1,3 @@
 import createStore from "./lib/createStore";
 
-export default {
-  createStore,
-};
+export { createStore };
