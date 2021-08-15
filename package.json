@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "start": "parcel examples/index.html",
-    "build-example": "parcel build --public-url ./rtcdux examples/index.html",
+    "build-example": "parcel build --public-url ./ examples/index.html",
     "test": "jest --detectOpenHandles --forceExit"
   },
   "author": "",
