@@ -2,7 +2,7 @@
   "name": "rtcdux",
   "version": "1.0.0",
   "description": "",
-  "homepage": "https://erikschmutz.github.io/rtcdux",
+  "homepage": "https://erikschmutz.github.io/rtcdux/index.html",
   "browserslist": [
     "last 10 and_chr versions",
     "last 10 chrome versions",
@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "start": "parcel examples/index.html",
-    "build-example": "parcel build examples/index.html",
+    "build-example": "parcel build --public-url ./rtcdux examples/index.html",
     "test": "jest --detectOpenHandles --forceExit"
   },
   "author": "",
