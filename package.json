@@ -2,6 +2,7 @@
   "name": "rtcdux",
   "version": "1.0.0",
   "description": "",
+  "homepage": "rtcdux",
   "browserslist": [
     "last 10 and_chr versions",
     "last 10 chrome versions",
