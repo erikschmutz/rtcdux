@@ -37,7 +37,7 @@ abstract class ScheduledTask {
 export class HealthCheckScheduledTask extends ScheduledTask {
   onEvent() {
     this.client.publish({
-      type: "ism://ping",
+      type: "ping",
       payload: { peerId: this.client.getId(), timestamp: Date.now() },
     });
   }
@@ -61,8 +61,9 @@ export class RemoveUnresponsiveScheduledTask extends ScheduledTask {
       if (!lastHealthCheck) continue;
 
       if (Date.now() - lastHealthCheck > this.unhealthyThreshold) {
+        console.log("NOT able to connect to " + node);
         this.client.publish({
-          type: "ism://unresponsive",
+          type: "unresponsive",
           payload: { peerId: node, lastResponse: lastHealthCheck },
         });
       }

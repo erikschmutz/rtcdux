@@ -9,10 +9,7 @@ const internalReducer = (
   action: Action,
   client: RTCClient
 ): InternalState => {
-  if (
-    action.type === "ism://discover" ||
-    action.type === "ism://discover-response"
-  ) {
+  if (action.type === "discover" || action.type === "discover-response") {
     const newNodes = { ...state.nodes };
     for (const neigborId of action.payload.nodesIds) {
       if (neigborId in state.nodes)
@@ -29,7 +26,7 @@ const internalReducer = (
     };
   }
 
-  if (action.type === "ism://disconnect") {
+  if (action.type === "disconnect") {
     const newNeighbors = { ...state.nodes };
     delete newNeighbors[action.payload.peerId];
 
@@ -39,7 +36,7 @@ const internalReducer = (
     };
   }
 
-  if (action.type === "ism://unresponsive") {
+  if (action.type === "unresponsive") {
     const newNeighbors = { ...state.nodes };
     delete newNeighbors[action.payload.peerId];
 
@@ -49,7 +46,7 @@ const internalReducer = (
     };
   }
 
-  if (action.type === "ism://ping") {
+  if (action.type === "ping") {
     return {
       ...state,
       nodes: {

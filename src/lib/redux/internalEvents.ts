@@ -2,52 +2,52 @@
 
 import Message from "../models/Message";
 
-export type ISMDisconnectAction = {
-  type: "ism://disconnect";
+export type DisconnectAction = {
+  type: "disconnect";
   payload: {
     peerId: string;
   };
 };
 
-export type ISMPingAction = {
-  type: "ism://ping";
+export type PingAction = {
+  type: "ping";
   payload: {
     peerId: string;
     timestamp: number;
   };
 };
 
-export type ISMUnresponsiveAction = {
-  type: "ism://unresponsive";
+export type UnresponsiveAction = {
+  type: "unresponsive";
   payload: {
     peerId: string;
     lastResponse: number;
   };
 };
 
-export type ISMEchoAction = {
-  type: "ism://echo";
+export type EchoAction = {
+  type: "echo";
   payload: string;
 };
 
-export type ISMDiscoverAction = {
-  type: "ism://discover";
+export type DiscoverAction = {
+  type: "discover";
   payload: {
     nodesIds: string[];
     peerId: string;
   };
 };
 
-export type ISMDiscoverResponseAction = {
-  type: "ism://discover-response";
+export type DiscoverResponseAction = {
+  type: "discover-response";
   payload: {
     nodesIds: string[];
     peerId: string;
   };
 };
 
-export type ISMRegisterMessage = {
-  type: "ism://messages";
+export type MessageAction = {
+  type: "messages";
   payload: {
     messages: Message[];
     targetId?: string;
@@ -56,16 +56,16 @@ export type ISMRegisterMessage = {
 
 // public data message
 export type PDMPayloadAction = {
-  type: "pdm://action";
+  type: "action";
   payload: any;
 };
 
 export type Action =
-  | ISMUnresponsiveAction
-  | ISMDiscoverAction
-  | ISMEchoAction
+  | UnresponsiveAction
+  | DiscoverAction
+  | EchoAction
   | PDMPayloadAction
-  | ISMPingAction
-  | ISMRegisterMessage
-  | ISMDiscoverResponseAction
-  | ISMDisconnectAction;
+  | PingAction
+  | MessageAction
+  | DiscoverResponseAction
+  | DisconnectAction;

@@ -13,7 +13,8 @@
   "scripts": {
     "start": "parcel examples/index.html",
     "build-example": "parcel build --public-url ./ examples/index.html",
-    "test": "jest --detectOpenHandles --forceExit"
+    "test": "jest --detectOpenHandles --forceExit --testPathIgnorePatterns e2e.*",
+    "test:e2e": "jest --detectOpenHandles --forceExit --testPathIgnorePatterns src.* --env=puppeteer"
   },
   "author": "",
   "license": "ISC",
@@ -23,10 +24,15 @@
   },
   "devDependencies": {
     "@types/jest": "^27.0.1",
+    "@types/jest-environment-puppeteer": "^4.4.1",
     "@types/react-dom": "^17.0.9",
     "jest": "^27.0.6",
+    "jest-dev-server": "^5.0.3",
+    "jest-puppeteer": "^5.0.4",
     "jsdom": "^17.0.0",
     "parcel": "^2.0.0-beta.2",
+    "puppeteer": "^10.2.0",
+    "puppeteer-core": "^10.2.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "tiny-typed-emitter": "^2.1.0",

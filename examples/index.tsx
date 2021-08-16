@@ -6,7 +6,6 @@ function RTCDux() {
   const [connected, setConnected] = useState<string[]>(
     Object.keys(store.__internalClient__.getInternalState()?.nodes!)
   );
-  const [whole, setWhole] = useState<string>();
   const [messages, setMessages] = useState<string[]>();
   const [connectingTo, setConnectingTo] = useState<string>();
   const [newMessage, setNewMessage] = useState<string>();
@@ -25,7 +24,7 @@ function RTCDux() {
     });
   }, []);
 
-  console.log(store.__internalClient__.getInternalMessages());
+  console.log(store.__internalClient__.getConnections());
 
   return (
     <>
@@ -66,8 +65,8 @@ function RTCDux() {
 
       <h2>Sent data</h2>
       <ul>
-        {messages?.map((message) => {
-          return <li key={message}>{message}</li>;
+        {messages?.map((message, index) => {
+          return <li key={index}>{message}</li>;
         })}
       </ul>
     </>

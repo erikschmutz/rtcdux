@@ -1,6 +1,12 @@
 import Peer from "peerjs";
 import Message from "./models/Message";
-import { Action } from "./redux/internalEvents";
+import {
+  Action,
+  DisconnectAction,
+  DiscoverAction,
+  MessageAction,
+  UnresponsiveAction,
+} from "./redux/internalEvents";
 import internalReducer from "./redux/internalReducer";
 import InternalState from "./redux/internalState";
 import hash from "./utils/hash";
@@ -10,7 +16,7 @@ import {
 } from "./utils/ScheduledTask";
 import Observable from "./utils/Observable";
 
-const DEFAULT_PING_DELAY = 5 * 1000;
+const DEFAULT_PING_DELAY = 10 * 1000;
 const DEFAULT_UNHEALTHY_THRESHOLD = DEFAULT_PING_DELAY * 3;
 
 interface RTCClientEventEmitter {
@@ -53,6 +59,14 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
       throw error;
     });
 
+    this.publish({
+      type: "discover",
+      payload: {
+        peerId: this.getId(),
+        nodesIds: [this.getId()],
+      },
+    });
+
     this.registerSchedulers();
   }
 
@@ -73,7 +87,7 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
   }
 
   private generateId() {
-    return "CLIENT" + Math.floor(Math.random() * 100);
+    return "CLIENT" + Math.floor(Math.random() * 10000);
   }
 
   public connect(connectionId: string) {
@@ -99,20 +113,21 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
           connectionId
         );
 
-        this.publish({
-          type: "ism://discover",
-          payload: {
-            nodesIds: Object.keys(this.internalState?.nodes || {}),
-            peerId: this.getId(),
+        this.publish(
+          {
+            type: "discover",
+            payload: {
+              nodesIds: Object.keys(this.internalState?.nodes || {}),
+              peerId: this.getId(),
+            },
           },
-        });
-
-        this.publish({
-          type: "ism://messages",
-          payload: {
-            messages: this.messages,
-          },
-        });
+          {
+            type: "messages",
+            payload: {
+              messages: this.messages,
+            },
+          }
+        );
 
         res();
       });
@@ -166,27 +181,23 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
 
   public disconnect() {
     this.publish({
-      type: "ism://disconnect",
+      type: "disconnect",
       payload: { peerId: this.peer.id },
     });
   }
 
-  public publish(action: Action) {
-    this.log(action);
-    this.internalState = internalReducer(this.internalState, action, this);
+  public publish(...actions: Action[]) {
+    for (const action of actions) {
+      this.log(action);
+      this.internalState = internalReducer(this.internalState, action, this);
 
-    const msg = new Message(action);
-    for (const neighborId of this.nodes.keys()) {
-      const neighbor = this.nodes.get(neighborId)!;
-      if (neighbor.open) neighbor.send(msg);
-    }
+      const msg = new Message(action);
+      for (const neighborId of this.nodes.keys()) {
+        const neighbor = this.nodes.get(neighborId)!;
+        if (neighbor.open) neighbor.send(msg);
+      }
 
-    this.onMessage(msg);
-  }
-
-  private handlePublicEvent(action: Action) {
-    if (action.type === "pdm://action") {
-      this.emit("data", action.payload);
+      this.onMessage(msg);
     }
   }
 
@@ -198,66 +209,88 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
     this.peer = new Peer(this.getId());
     this.messages = [];
     this.internalState = undefined;
-    this.publish({
-      type: "ism://discover",
-      payload: {
-        peerId: this.getId(),
-        nodesIds: [this.getId()],
-      },
-    });
+    this.emit("reset");
   }
 
-  private handleInternalEvent(action: Action) {
-    this.internalState = internalReducer(this.internalState, action, this);
-    if (!this.internalState) {
-      throw new Error("No internal state created before handeling event!");
-    }
+  private handleDiscoverAction(action: DiscoverAction) {
+    if (!this.internalState) return;
 
-    if (action.type === "ism://discover") {
-      if (action.payload.peerId !== this.getId()) {
-        this.publish({
-          type: "ism://discover-response",
+    if (action.payload.peerId !== this.getId()) {
+      this.publish(
+        {
+          type: "discover-response",
           payload: {
             nodesIds: Object.keys(this.internalState.nodes),
             peerId: this.getId(),
           },
-        });
-
-        this.publish({
-          type: "ism://messages",
+        },
+        {
+          type: "messages",
           payload: {
             messages: this.messages,
             targetId: action.payload.peerId,
           },
-        });
-      }
+        }
+      );
     }
 
+    this.connectToNewNeighbors();
+  }
+
+  private handleMessageAction(action: MessageAction) {
     if (
-      action.type === "ism://messages" &&
-      (action.payload.targetId === undefined ||
-        action.payload.targetId === this.getId())
+      action.payload.targetId === undefined ||
+      action.payload.targetId === this.getId()
     ) {
       this.addMessage(...action.payload.messages);
       this.replay();
     }
+  }
 
-    if (action.type === "ism://disconnect") {
-      if (action.payload.peerId === this.getId()) {
-        setTimeout(() => {
-          this.reset();
-          this.disconnectToMissingNeigbors();
-        }, 100);
-      } else {
+  private handleDisconnectAction(action: DisconnectAction) {
+    if (action.payload.peerId === this.getId()) {
+      setTimeout(() => {
+        this.reset();
         this.disconnectToMissingNeigbors();
-      }
-    }
 
-    if (action.type === "ism://unresponsive") {
+        this.publish({
+          type: "discover",
+          payload: {
+            peerId: this.getId(),
+            nodesIds: [this.getId()],
+          },
+        });
+      }, 100);
+    } else {
       this.disconnectToMissingNeigbors();
     }
+  }
 
-    this.connectToNewNeighbors();
+  private handleUnresponsive(__: UnresponsiveAction) {
+    this.disconnectToMissingNeigbors();
+  }
+
+  private handleAction(action: Action, onlyState = false) {
+    this.internalState = internalReducer(this.internalState, action, this);
+
+    if (onlyState) {
+      return this.emit("data", action.payload);
+    }
+
+    switch (action.type) {
+      case "discover":
+        return this.handleDiscoverAction(action);
+      case "messages":
+        return this.handleMessageAction(action);
+      case "disconnect":
+        return this.handleDisconnectAction(action);
+      case "unresponsive":
+        return this.handleUnresponsive(action);
+      case "action":
+        return this.emit("data", action.payload);
+      case "discover-response":
+        return this.connectToNewNeighbors();
+    }
   }
 
   public reload() {
@@ -266,8 +299,10 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
 
   private addMessage(...messages: Message[]) {
     for (const message of messages) {
-      if (message.data.type === "ism://messages") continue;
-      if (!this.messages.map((message) => message.id).includes(message.id)) {
+      if (message.action.type === "messages") continue;
+      const messageIds = this.messages.map((message) => message.id);
+
+      if (!messageIds.includes(message.id)) {
         this.messages.push(message);
         this.messages = this.messages.sort((msg1, msg2) => {
           return msg1.timestamp - msg2.timestamp;
@@ -276,42 +311,53 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
     }
   }
 
-  public replay(untilTime?: number) {
+  /**
+   * Replays all the events until the time given. If
+   * no time is given it replays all the events
+   *
+   * @param untilTime
+   */
+  private replay(untilTime?: number) {
     this.internalState = undefined;
     this.emit("reset");
 
     for (const message of this.messages) {
+      // console.log("Replaying message with id " + message.id);
       if (untilTime && message.timestamp > untilTime) break;
 
-      const action = message.data;
-      if (action.type.startsWith("pdm://")) {
-        this.handlePublicEvent(action);
-      } else if (action.type.startsWith("ism://")) {
-        this.internalState = internalReducer(this.internalState, action, this);
-      }
+      this.handleAction(message.action, true);
     }
   }
 
   public onMessage(message: Message) {
-    this.addMessage(message);
-
-    if (!("data" in message)) {
+    if (!("action" in message)) {
       throw new Error("bad format on incomming request");
     }
 
-    const action = message.data;
-
-    if (action.type.startsWith("pdm://")) {
-      this.handlePublicEvent(action);
-    } else if (action.type.startsWith("ism://")) {
-      this.handleInternalEvent(action);
-    }
-
-    this.emit("action", action);
+    this.addMessage(message);
+    this.handleAction(message.action);
+    this.emit("action", message.action);
   }
 
-  public async connectToNewNeighbors() {
+  /**
+   * Helper function to clean up the
+   */
+  private cleanUp() {
+    // Remove all the neighbors from the connection map
+    // which are currently close
+    for (const neighborId of this.nodes.keys()) {
+      // We should not close our selves
+      if (!this.nodes.get(neighborId)?.open) this.nodes.delete(neighborId);
+    }
+  }
+
+  /**
+   * Loops threw the internal state sets up a connection with
+   * neighbors which is not currently connected
+   */
+  private connectToNewNeighbors(): void {
     if (!this.internalState) return;
+
     for (const neighborId in this.internalState.nodes) {
       // Already has the neighbor
       if (this.nodes.has(neighborId)) continue;
@@ -324,14 +370,11 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
     }
   }
 
-  private cleanUp() {
-    for (const neighborId of this.nodes.keys()) {
-      // We should not close our selves
-      if (!this.nodes.get(neighborId)!.open) this.nodes.delete(neighborId);
-    }
-  }
-
-  public async disconnectToMissingNeigbors() {
+  /**
+   * Loops threw and removes the connections
+   * which no longer exists in the internal state
+   */
+  private disconnectToMissingNeigbors(): void {
     if (!this.internalState) return;
 
     // Removes all the connected one which does not still exist in state

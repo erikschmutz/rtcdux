@@ -1,12 +1,12 @@
 import { Action } from "../redux/internalEvents";
 
 class Message {
-  data: Action;
+  action: Action;
   id: string;
   timestamp: number;
 
   constructor(action: Action) {
-    this.data = action;
+    this.action = action;
     this.id = this.generateId();
     this.timestamp = Date.now();
   }

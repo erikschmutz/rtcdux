@@ -25,7 +25,7 @@ export class RTCDuxStore<S, A extends Action> extends Observable {
   }
 
   public dispatch<T extends A>(action: T) {
-    this.__internalClient__.publish({ type: "pdm://action", payload: action });
+    this.__internalClient__.publish({ type: "action", payload: action });
     this.notifySubscribers();
     return action;
   }
