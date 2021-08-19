@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <p id="error"></p>
+    <script>
+      // Hacky solution to avoid error with peerjs
+      window.require = undefined;
+    </script>
+    <script>
+      window.onerror = function (message, source, lineno, colno, error) {
+        document.getElementById("error").innerHTML =
+          message + ":" + error + ":" + source + ":" + lineno + ":" + colno;
+      };
+    </script>
+    <script src="./max.tsx"></script>
+  </body>
+</html>

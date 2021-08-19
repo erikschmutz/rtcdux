@@ -1,4 +1,4 @@
-import createStore from "../src/lib/createStore";
+import createStore from "../../src/lib/createStore";
 
 type IState = {
   messages: string[];
@@ -29,4 +29,4 @@ const reducer = (state: IState = { messages: [] }, action: Action) => {
   return state;
 };
 
-export default createStore(reducer);
+export default (id: string) => createStore(reducer, { id: id });

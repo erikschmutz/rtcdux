@@ -12,6 +12,8 @@
   ],
   "scripts": {
     "start": "parcel examples/index.html",
+    "start:slider": "parcel examples/slider/index.html",
+    "start:max-speed": "parcel examples/max-speed/index.html",
     "build-example": "parcel build --public-url ./ examples/index.html",
     "test": "jest --detectOpenHandles --forceExit --testPathIgnorePatterns e2e.*",
     "test:e2e": "jest --detectOpenHandles --forceExit --testPathIgnorePatterns src.* --env=puppeteer"

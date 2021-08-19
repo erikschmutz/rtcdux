@@ -10,6 +10,7 @@ module.exports = {
   moduleNameMapper: {
     ...pathsToModuleNameMapper(compilerOptions.paths, ""),
   },
+  transform: { "^.+\\.(ts|tsx|js|jsx)$": "ts-jest" },
 
   moduleDirectories: [".", "src", "node_modules"],
   coverageReporters: ["json", "lcov", "text", "clover"], // "text-summary"

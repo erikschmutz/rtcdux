@@ -18,9 +18,10 @@
   "types": ["node", "jest", "reflect-metadata"],
   "include": [
     "src/**/*",
+    "e2e/**/*",
     "examples/**/*",
     "tests/**/*",
-    "examples/ExampleState.ts"
+    "examples/basic/ExampleState.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

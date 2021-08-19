@@ -1,4 +1,4 @@
-import createStore from "../src/lib/createStore";
+import createStore from "../../src/lib/createStore";
 
 type IState = {
   messages: string[];

@@ -91,8 +91,7 @@ export class RTCClient extends Observable<RTCClientEventEmitter> {
   }
 
   public connect(connectionId: string) {
-    console.log(connectionId, this.nodes);
-    if (connectionId in this.nodes.keys()) return;
+    if (connectionId in this.nodes.keys()) return Promise.resolve();
 
     const connection = this.peer.connect(connectionId);
     this.nodes.set(connectionId, connection);

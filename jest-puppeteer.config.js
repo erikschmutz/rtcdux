@@ -1,6 +1,6 @@
 module.exports = {
   server: {
-    command: "parcel examples/index.html",
+    command: "parcel e2e/assets/test.html",
     port: 1234,
   },
 };
